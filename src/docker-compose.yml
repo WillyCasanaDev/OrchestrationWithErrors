@@ -1,0 +1,41 @@
+version: '3.8'
+name: genkin-orchestration
+services:
+  database: 
+    container_name: database-orchestration
+    image: mongo
+    networks:
+      - genkin-orchestration-api
+    ports:
+      - '27018:27017'
+    restart: always
+    volumes:
+      - "mongodb_data:/data/db"
+
+  api:
+    container_name: api-orchestration
+    image: ${DOCKER_REGISTRY-}genkin-orchestration
+    build:
+      context: .
+      dockerfile: Orchestrator.ApiHost/Dockerfile
+    networks:
+      - genkin-orchestration-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - "Vault__Profile=${PROFILES_ACTIVE}"
+      - "Vault__Token=${VAULT_TOKEN}"
+      - "Vault__Uri=${VAULT_URI}"
+      - "Vault__MountPoint=${VAULT_BACKEND}"
+      - "Vault__ApplicationName=${APPLICATION_NAME}"
+    depends_on:
+      - database
+    ports:
+      - "8080:80"
+      - "443"
+volumes:
+    mongodb_data:
+      driver: local
+networks:
+    genkin-orchestration-api:
+        name: genkin-orchestration-api
